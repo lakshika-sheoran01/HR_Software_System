@@ -1,7 +1,7 @@
 # Candidate Evaluation Dashboard
 
 A Python Flask web application for HR representatives to manage candidate profiles and evaluate candidates based on their skills and experience.
-
+git remote add origin https://github.com/lakshika-sheoran01/HR_Software_System
 ## Features
 
 - **Add Candidates** — Register candidates with ID, name, email, experience, skills, and education
