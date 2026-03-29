@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}Skill Evaluation — EvalHR{% endblock %}
+
+{% block content %}
+<div class="page-title">Skill Evaluation</div>
+<div class="page-sub">Assign skill scores (1–10) for each candidate</div>
+
+<!-- Candidate Selector -->
+<div class="card" style="padding:18px 24px;margin-bottom:24px;display:flex;align-items:center;gap:16px;">
+  <label style="min-width:fit-content;font-size:13px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;">Select Candidate:</label>
+  <select onchange="window.location='/skills?candidate_id='+this.value" style="max-width:320px;">
+    {% for c in candidates %}
+    <option value="{{ c.candidate_id }}" {% if c.candidate_id == selected_id %}selected{% endif %}>
+      {{ c.name }} ({{ c.candidate_id }})
+    </option>
+    {% endfor %}
+  </select>
+  {% if selected_candidate %}
+  <span class="badge badge-blue">{{ selected_candidate.primary_skill }}</span>
+  <span style="font-size:12px;color:var(--text-muted);">{{ selected_candidate.experience }} yrs exp</span>
+  {% endif %}
+</div>
+
+{% if selected_id and selected_candidate %}
+<div class="card" style="max-width:760px;">
+  <div class="card-header">
+    <div class="card-title">🎯 Evaluating: {{ selected_candidate.name }}</div>
+    <span style="font-size:12px;color:var(--text-muted);">Score each skill from 1 (lowest) to 10 (highest)</span>
+  </div>
+  <div class="card-body">
+
+    <!-- Formula box -->
+    <div style="background:linear-gradient(135deg,#f0f7ff,#e8f0fe);border:1px solid #bdd0f0;border-radius:8px;padding:13px 18px;margin-bottom:24px;font-size:13px;color:var(--primary);font-weight:600;">
+      💡 Final Score = <span style="font-family:'Playfair Display',serif;">(Avg Skill Score × 0.7) + (Experience × 0.3)</span>
+    </div>
+
+    <form method="POST">
+      <input type="hidden" name="candidate_id" value="{{ selected_id }}">
+
+      <!-- Skill rows -->
+      <div id="skillsContainer">
+        {% set all_skills = existing_scores.keys() | list if existing_scores else default_skills %}
+        {% for skill in (existing_scores.keys() if existing_scores else default_skills) %}
+        <div class="skill-row" style="display:grid;grid-template-columns:180px 1fr 80px 36px;align-items:center;gap:16px;padding:16px 0;border-bottom:1px solid var(--border);">
+          <input type="text" name="skill_name" value="{{ skill }}" placeholder="Skill name" style="font-weight:600;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <input type="range" name="skill_score" min="1" max="10"
+              value="{{ existing_scores[skill] if skill in existing_scores else 5 }}"
+              oninput="updateScore(this)"
+              style="flex:1;-webkit-appearance:none;height:6px;background:#e2e8f0;border-radius:3px;outline:none;cursor:pointer;border:none;padding:0;">
+          </div>
+          <div class="score-display" style="width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;background:var(--primary);color:#fff;">
+            {{ existing_scores[skill] if skill in existing_scores else 5 }}
+          </div>
+          <button type="button" onclick="removeSkill(this)" style="background:none;border:none;color:var(--danger);font-size:18px;cursor:pointer;padding:4px;">✕</button>
+        </div>
+        {% endfor %}
+      </div>
+
+      <div style="margin-top:20px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+        <button type="button" onclick="addSkillRow()" class="btn btn-outline btn-sm">+ Add Skill</button>
+        <button type="submit" class="btn btn-success">💾 Save Scores</button>
+        <a href="/profile/{{ selected_id }}" class="btn btn-outline btn-sm">View Profile</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% else %}
+<div class="card"><div class="empty"><div class="empty-icon">👤</div><div>No candidates found. <a href="/add">Add a candidate first.</a></div></div></div>
+{% endif %}
+
+<script>
+function updateScore(slider) {
+  const display = slider.closest('.skill-row').querySelector('.score-display');
+  display.textContent = slider.value;
+  const pct = ((slider.value - 1) / 9) * 100;
+  slider.style.background = `linear-gradient(to right, var(--primary-light) ${pct}%, #e2e8f0 ${pct}%)`;
+}
+
+function addSkillRow() {
+  const container = document.getElementById('skillsContainer');
+  const div = document.createElement('div');
+  div.className = 'skill-row';
+  div.style = 'display:grid;grid-template-columns:180px 1fr 80px 36px;align-items:center;gap:16px;padding:16px 0;border-bottom:1px solid var(--border);';
+  div.innerHTML = `
+    <input type="text" name="skill_name" placeholder="Skill name" style="font-weight:600;">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <input type="range" name="skill_score" min="1" max="10" value="5"
+        oninput="updateScore(this)"
+        style="flex:1;-webkit-appearance:none;height:6px;background:#e2e8f0;border-radius:3px;outline:none;cursor:pointer;border:none;padding:0;">
+    </div>
+    <div class="score-display" style="width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;background:var(--primary);color:#fff;">5</div>
+    <button type="button" onclick="removeSkill(this)" style="background:none;border:none;color:var(--danger);font-size:18px;cursor:pointer;padding:4px;">✕</button>
+  `;
+  container.appendChild(div);
+}
+
+function removeSkill(btn) {
+  const rows = document.querySelectorAll('.skill-row');
+  if (rows.length > 1) btn.closest('.skill-row').remove();
+  else alert('At least one skill is required.');
+}
+
+// Init slider backgrounds
+document.querySelectorAll('input[type=range]').forEach(s => {
+  const pct = ((s.value - 1) / 9) * 100;
+  s.style.background = `linear-gradient(to right, var(--primary-light) ${pct}%, #e2e8f0 ${pct}%)`;
+});
+</script>
+{% endblock %}

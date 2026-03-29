@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% block title %}Candidate Profile — EvalHR{% endblock %}
+
+{% block content %}
+<div class="page-title">Candidate Profile</div>
+<div class="page-sub">Detailed view of candidate information and evaluation</div>
+
+<!-- Candidate Selector -->
+<div class="card" style="padding:18px 24px;margin-bottom:24px;display:flex;align-items:center;gap:16px;">
+  <label style="min-width:fit-content;font-size:13px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;">Select Candidate:</label>
+  <select onchange="window.location='/profile/'+this.value" style="max-width:320px;">
+    {% for c in candidates %}
+    <option value="{{ c.candidate_id }}" {% if c.candidate_id == selected_id %}selected{% endif %}>
+      {{ c.name }} ({{ c.candidate_id }})
+    </option>
+    {% endfor %}
+  </select>
+</div>
+
+{% if candidate %}
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+
+  <!-- Left: Profile Card -->
+  <div class="card">
+    <!-- Header -->
+    <div style="background:linear-gradient(135deg,var(--primary) 0%,var(--primary-light) 100%);padding:28px;color:#fff;display:flex;align-items:center;gap:20px;">
+      <div style="width:68px;height:68px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-size:26px;font-weight:700;border:3px solid rgba(255,255,255,0.4);flex-shrink:0;">
+        {{ candidate.name[0] }}
+      </div>
+      <div>
+        <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:700;">{{ candidate.name }}</div>
+        <div style="font-size:13px;opacity:0.8;margin-top:4px;">{{ candidate.candidate_id }} · {{ candidate.primary_skill }}</div>
+      </div>
+    </div>
+
+    <!-- Info -->
+    <div style="padding:24px;">
+      {% set info = [
+        ('Candidate ID', candidate.candidate_id),
+        ('Full Name', candidate.name),
+        ('Email', candidate.email),
+        ('Experience', candidate.experience | string + ' years'),
+        ('Primary Skill', candidate.primary_skill),
+        ('Secondary Skill', candidate.secondary_skill if candidate.secondary_skill else '—'),
+        ('Education', candidate.education),
+      ] %}
+      {% for label, val in info %}
+      <div style="display:flex;flex-direction:column;gap:3px;padding:12px 0;border-bottom:1px solid var(--border);">
+        <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;">{{ label }}</div>
+        <div style="font-size:14px;font-weight:600;color:var(--text);">{{ val }}</div>
+      </div>
+      {% endfor %}
+
+      <!-- Action buttons -->
+      <div style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;">
+        <a href="/edit/{{ candidate.candidate_id }}" class="btn btn-outline btn-sm">✏️ Edit</a>
+        <a href="/skills?candidate_id={{ candidate.candidate_id }}" class="btn btn-sm" style="background:#f0f7ff;color:var(--primary-light);border:1px solid #bdd0f0;">🎯 Evaluate Skills</a>
+        <form method="POST" action="/delete/{{ candidate.candidate_id }}" style="display:inline;" onsubmit="return confirm('Delete {{ candidate.name }}?')">
+          <button type="submit" class="btn btn-danger btn-sm">🗑 Delete</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right: Score & Skills -->
+  <div style="display:flex;flex-direction:column;gap:20px;">
+
+    <!-- Final Score Card -->
+    <div class="card" style="padding:28px;text-align:center;">
+      <div style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:12px;">Final Score</div>
+      {% if final_score %}
+      <div style="font-family:'Playfair Display',serif;font-size:72px;font-weight:700;line-height:1;
+        color:{% if final_score >= 8 %}#2e7d52{% elif final_score >= 6 %}var(--accent){% else %}var(--danger){% endif %};">
+        {{ final_score }}
+      </div>
+      <div style="font-size:12px;color:var(--text-muted);margin-top:8px;">out of 10</div>
+      <div style="margin-top:16px;">
+        {% if final_score >= 8 %}
+        <span class="badge badge-green">⭐ Highly Recommended</span>
+        {% elif final_score >= 6 %}
+        <span class="badge badge-amber">👍 Recommended</span>
+        {% else %}
+        <span class="badge badge-red">⚠️ Needs Improvement</span>
+        {% endif %}
+      </div>
+      <div style="margin-top:16px;padding:12px;background:#f8fafc;border-radius:8px;font-size:12px;color:var(--text-muted);">
+        Rank: <strong style="color:var(--primary);font-size:14px;">
+          {% if rank != '-' %}#{{ rank }}{% else %}Not ranked{% endif %}
+        </strong> among all candidates
+      </div>
+      <div style="margin-top:10px;font-size:11px;color:var(--text-light);">
+        Formula: (Avg Skill × 0.7) + (Experience × 0.3)
+      </div>
+      {% else %}
+      <div style="font-size:48px;opacity:0.3;margin-bottom:12px;">🎯</div>
+      <div style="color:var(--text-muted);font-size:14px;">Not evaluated yet</div>
+      <a href="/skills?candidate_id={{ candidate.candidate_id }}" class="btn btn-primary" style="margin-top:16px;">Evaluate Now</a>
+      {% endif %}
+    </div>
+
+    <!-- Skill Scores -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">📊 Skill Scores</div>
+        <a href="/skills?candidate_id={{ candidate.candidate_id }}" class="btn btn-outline btn-sm">Edit Scores</a>
+      </div>
+      <div style="padding:20px;">
+        {% if skill_scores %}
+          {% for s in skill_scores %}
+          <div style="margin-bottom:16px;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+              <span style="font-size:13px;font-weight:600;">{{ s.skill_name }}</span>
+              <span style="font-size:13px;font-weight:800;color:{% if s.score >= 8 %}#2e7d52{% elif s.score >= 6 %}var(--accent){% else %}var(--danger){% endif %};">
+                {{ s.score }}/10
+              </span>
+            </div>
+            <div style="height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden;">
+              <div style="height:100%;width:{{ (s.score/10)*100 }}%;border-radius:4px;background:{% if s.score >= 8 %}#2e7d52{% elif s.score >= 6 %}var(--accent){% else %}var(--danger){% endif %};transition:width 0.5s ease;"></div>
+            </div>
+          </div>
+          {% endfor %}
+          <!-- Average -->
+          {% set avg = (skill_scores | sum(attribute='score')) / (skill_scores | length) %}
+          <div style="margin-top:16px;padding:12px;background:#f8fafc;border-radius:8px;display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;">Average Skill Score</span>
+            <span style="font-weight:800;font-size:18px;color:var(--primary);">{{ "%.1f" | format(avg) }}</span>
+          </div>
+        {% else %}
+        <div class="empty" style="padding:28px;">
+          <div class="empty-icon">📊</div>
+          <div>No skill scores yet.</div>
+          <a href="/skills?candidate_id={{ candidate.candidate_id }}" class="btn btn-primary btn-sm" style="margin-top:12px;">Add Scores</a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+</div>
+
+{% else %}
+<div class="card"><div class="empty"><div class="empty-icon">👤</div><div>No candidates found. <a href="/add">Add a candidate first.</a></div></div></div>
+{% endif %}
+{% endblock %}

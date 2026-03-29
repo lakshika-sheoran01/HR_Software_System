@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}{% if edit_mode %}Edit Candidate{% else %}Add Candidate{% endif %} — EvalHR{% endblock %}
+
+{% block content %}
+<div class="page-title">{% if edit_mode %}Edit Candidate{% else %}Add Candidate{% endif %}</div>
+<div class="page-sub">{% if edit_mode %}Update candidate information{% else %}Register a new candidate into the system{% endif %}</div>
+
+<div class="card" style="max-width:780px;">
+  <div class="card-header">
+    <div class="card-title">{% if edit_mode %}✏️ Editing: {{ candidate.name }}{% else %}📝 Candidate Registration Form{% endif %}</div>
+    {% if edit_mode %}<a href="/profile/{{ candidate.candidate_id }}" class="btn btn-outline btn-sm">← Cancel</a>{% endif %}
+  </div>
+  <div class="card-body">
+
+    <!-- Formula reminder -->
+    <div style="background:linear-gradient(135deg,#f0f7ff,#e8f0fe);border:1px solid #bdd0f0;border-radius:8px;padding:13px 18px;margin-bottom:24px;font-size:13px;color:var(--primary);font-weight:600;">
+      💡 Final Score Formula: <span style="font-family:'Playfair Display',serif;font-size:15px;">(Avg Skill Score × 0.7) + (Experience × 0.3)</span>
+    </div>
+
+    <form method="POST">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Candidate ID *</label>
+          <input type="text" name="candidate_id" placeholder="e.g. C006"
+            value="{{ candidate.candidate_id if candidate else '' }}"
+            {% if edit_mode %}readonly style="background:#f8fafc;color:var(--text-muted);"{% endif %}
+            required>
+        </div>
+        <div class="form-group">
+          <label>Full Name *</label>
+          <input type="text" name="name" placeholder="e.g. Arun Kumar"
+            value="{{ candidate.name if candidate else '' }}" required>
+        </div>
+        <div class="form-group">
+          <label>Email Address *</label>
+          <input type="email" name="email" placeholder="e.g. arun@email.com"
+            value="{{ candidate.email if candidate else '' }}" required>
+        </div>
+        <div class="form-group">
+          <label>Years of Experience *</label>
+          <input type="number" name="experience" min="0" max="40" placeholder="e.g. 3"
+            value="{{ candidate.experience if candidate else '' }}" required>
+        </div>
+        <div class="form-group">
+          <label>Primary Skill *</label>
+          <input type="text" name="primary_skill" placeholder="e.g. Python"
+            value="{{ candidate.primary_skill if candidate else '' }}" required>
+        </div>
+        <div class="form-group">
+          <label>Secondary Skill</label>
+          <input type="text" name="secondary_skill" placeholder="e.g. SQL"
+            value="{{ candidate.secondary_skill if candidate else '' }}">
+        </div>
+        <div class="form-group full">
+          <label>Education *</label>
+          <select name="education" required>
+            <option value="">Select highest qualification...</option>
+            {% for edu in ['High School', 'Diploma', 'BCA', 'B.Sc CS', 'B.Tech', 'MCA', 'M.Sc CS', 'M.Tech', 'MBA', 'PhD'] %}
+            <option value="{{ edu }}" {% if candidate and candidate.education == edu %}selected{% endif %}>{{ edu }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:12px;margin-top:8px;">
+        <button type="submit" class="btn btn-primary">
+          {% if edit_mode %}✓ Save Changes{% else %}➕ Add Candidate{% endif %}
+        </button>
+        {% if not edit_mode %}
+        <a href="/" class="btn btn-outline">Cancel</a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
